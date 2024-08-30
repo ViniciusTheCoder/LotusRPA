@@ -9,7 +9,7 @@ import time
 
 # Configurações do WebDriver
 chrome_options = Options()
-#chrome_options.add_argument("--headless")  # Opcional: executa o navegador em segundo plano
+chrome_options.add_argument("--headless")  # Opcional: executa o navegador em segundo plano
 service = Service(r'')  # Corrigido
 
 driver = webdriver.Chrome(service=service, options=chrome_options)
@@ -28,9 +28,9 @@ def main(sample):
         # Preencha o formulário de login
         WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.ID, 'email'))
-        ).send_keys('')
+        ).send_keys('#aqui você colocará seu e-mail para login')
 
-        driver.find_element(By.ID, 'password').send_keys('Dinguinho123_')
+        driver.find_element(By.ID, 'password').send_keys('#aqui você colocará sua senha')
 
         # Clique no botão de login
         login_button = driver.find_element(By.CLASS_NAME, 'btn.btn-primary')
