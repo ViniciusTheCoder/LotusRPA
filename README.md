@@ -8,12 +8,11 @@
 - You'll also need to install Python: https://www.python.org/
 - You also need to install Git, to clone this repo: https://git-scm.com/downloads
 - And the last app you need in your PC it's Visual Studio Code, after VSCode installation, go to VsCode Marketplace and download it Python extension.
+- Don't forget to place your CPF sheet on the project root, you need to name the sheet as the following name "planilha.xlsx"
 
 After that, just run the following command line:
 
 First we need to clone this repo, so in the folder you want to save this repo, run: 
-
-Start bundle:
 
 ```javascript
 git clone
@@ -23,32 +22,19 @@ git clone
 ### In root folder, setup your virtual environment: 
 
 ```javascript
-
+python -m venv .venv
+.venv\Scripts\activate
 ```
 
+Now let's install the project dependencies:
 ```javascript
-expo install
+pip install selenium pandas openpyxl
 ```
 
-You can also run this project using the React-Native CLI by the following commands: 
-
-
-```javascript
-yarn start
-```
+Now you can already run the project
 
 
 ```javascript
-yarn run android
-```
-
-or
-
-```javascript
-yarn start
-```
-
-```javascript
-yarn run ios
+python main.py
 ```
 
