@@ -9,10 +9,10 @@ import pandas as pd
 import time
 import logging
 
-# Configurar logging
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Configurações do WebDriver
+
 chrome_options = Options()
 chrome_options.add_argument("--headless")  
 service = Service(r'')  
@@ -24,7 +24,7 @@ def type_with_mask(input_element, text):
         input_element.send_keys(char)
         time.sleep(0.1)
     
-    # Verificar se todos os caracteres foram digitados
+   
     if input_element.get_attribute('value') != text:
         input_element.clear()
         input_element.send_keys(text)
