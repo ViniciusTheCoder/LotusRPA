@@ -1,6 +1,6 @@
 # LotusRPA
 
-## Status: In Development ⚙️
+## Status: Developed ✅
 
 ## Warnings⚠️: 
 - To run this project, make sure to install Chorme Web Driver on your PC, you can install it here: https://developer.chrome.com/docs/chromedriver/downloads
