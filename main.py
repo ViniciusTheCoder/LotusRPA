@@ -9,13 +9,12 @@ import pandas as pd
 import time
 import logging
 
-
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-
 chrome_options = Options()
-chrome_options.add_argument("--headless")  
+#chrome_options.add_argument("--headless") 
 service = Service(r'')  
+
 def setup_driver():
     return webdriver.Chrome(service=service, options=chrome_options)
 
@@ -24,16 +23,21 @@ def type_with_mask(input_element, text):
         input_element.send_keys(char)
         time.sleep(0.1)
     
-   
     if input_element.get_attribute('value') != text:
         input_element.clear()
         input_element.send_keys(text)
 
+def format_cpf(cpf):
+    
+    cpf = ''.join(filter(str.isdigit, cpf))
+    
+    return cpf.zfill(11)
+
 def login(driver, email, password):
     driver.get('https://app.lotusmais.com.br/login')
     
-    WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.ID, 'email'))).send_keys('your email')
-    driver.find_element(By.ID, 'password').send_keys('your password')
+    WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.ID, 'email'))).send_keys('')
+    driver.find_element(By.ID, 'password').send_keys('')
     
     login_button = driver.find_element(By.CLASS_NAME, 'btn.btn-primary')
     login_button.click()
@@ -72,13 +76,27 @@ def navigate_to_new_proposal(driver):
         logging.error(f"Erro ao navegar para Nova Proposta: {e}")
         raise
 
+def wait_for_input_screen(driver):
+    try:
+        input_element = WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.CLASS_NAME, 'form-control.wizard__step__input'))
+        )
+        WebDriverWait(driver, 20).until(
+            EC.visibility_of(input_element)
+        )
+        logging.info("Tela de input carregada e visível.")
+    except TimeoutException:
+        logging.error("A tela de input não carregou a tempo.")
+        raise
+
 def process_cpf(driver, cpf, index, total):
     try:
+        formatted_cpf = format_cpf(cpf)
         input_element = WebDriverWait(driver, 5).until(
             EC.presence_of_element_located((By.CLASS_NAME, 'form-control.wizard__step__input'))
         )
         input_element.clear()
-        type_with_mask(input_element, cpf)
+        type_with_mask(input_element, formatted_cpf)
         
         busca_button = WebDriverWait(driver, 1).until(
             EC.presence_of_element_located((By.CLASS_NAME, 'btn.btn-primary.d-flex.align-items-center.justify-content-center'))
@@ -100,37 +118,54 @@ def process_cpf(driver, cpf, index, total):
             total_transfer_element = WebDriverWait(driver, 5).until(
                 EC.presence_of_element_located((By.CLASS_NAME, 'totalTransfer'))
             )
-            saldo = total_transfer_element.find_element(By.TAG_NAME, 'h3').text
             found_total_transfer = True
         except (TimeoutException, NoSuchElementException):
-            logging.info(f"Saldo não encontrado para CPF {cpf}. Definindo como 0.")
+            logging.info(f"Saldo não encontrado para CPF {formatted_cpf}. Definindo como 0.")
 
         if found_total_transfer:
-            
             try:
                 
-                dashboard_button = WebDriverWait(driver, 5).until(
+                try:
+                    has_insurance_checkbox = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.ID, 'hasInsurance'))
+                    )
+                    if has_insurance_checkbox.is_selected():
+                        has_insurance_checkbox.click()
+                        logging.info("Desmarcou o checkbox 'hasInsurance'")
+
+                   
+                    time.sleep(10)
+                except TimeoutException:
+                    logging.info("Checkbox 'hasInsurance' não encontrado. Prosseguindo para capturar o saldo.")
+                
+                
+                total_transfer_element = WebDriverWait(driver, 20).until(
+                    EC.presence_of_element_located((By.CLASS_NAME, 'totalTransfer'))
+                )
+                saldo = total_transfer_element.find_element(By.TAG_NAME, 'h3').text
+
+                dashboard_button = WebDriverWait(driver, 20).until(
                     EC.element_to_be_clickable((By.XPATH, "//span[contains(text(),'Dashboard')]"))
                 )
                 dashboard_button.click()
                 logging.info("Clicou em 'Dashboard'")
 
-                
                 time.sleep(2)
 
-                
-                nova_proposta = WebDriverWait(driver, 5).until(
+                nova_proposta = WebDriverWait(driver, 20).until(
                     EC.element_to_be_clickable((By.XPATH, "//span[contains(text(),'Nova Proposta')]"))
                 )
                 nova_proposta.click()
                 logging.info("Clicou em 'Nova Proposta'")
 
+                
+                wait_for_input_screen(driver)
+
             except Exception as e:
-                logging.error(f"Erro ao navegar para Nova Proposta após encontrar saldo: {e}")
+                logging.error(f"Erro ao processar CPF {formatted_cpf}: {e}")
         else:
-            
             try:
-                back_button = WebDriverWait(driver, 10).until(
+                back_button = WebDriverWait(driver, 40).until(
                     EC.element_to_be_clickable((By.CSS_SELECTOR, 'button.btn.btn-outline-primary.d-flex.align-items-center.justify-content-center'))
                 )
                 driver.execute_script("arguments[0].click();", back_button)
@@ -138,13 +173,12 @@ def process_cpf(driver, cpf, index, total):
             except Exception as e:
                 logging.error(f"Erro ao clicar no botão 'Voltar': {e}")
 
-       
         logging.info(f"Processados {index + 1} de {total} CPFs.")
 
         return saldo
 
     except Exception as e:
-        logging.error(f"Erro ao processar CPF {cpf}: {e}")
+        logging.error(f"Erro ao processar CPF {formatted_cpf}: {e}")
         return None
 
 def main(sample):
@@ -153,16 +187,16 @@ def main(sample):
         login(driver, 'seu_email@exemplo.com', 'sua_senha')
         navigate_to_new_proposal(driver)
 
-        df = pd.read_excel('\\planilha.xlsx', engine='openpyxl')
+        df = pd.read_excel('C:\\Users\\admin\\Documents\\Projects\\automation\\inputs\\sexta-carga.xlsx', engine='openpyxl')
         
         if df.empty or 'CPF' not in df.columns:
             logging.error("A planilha não contém a coluna 'CPF'.")
             return
 
         df['CPF'] = df['CPF'].astype(str)
-        df['Saldo'] = ""  
+        df['Saldo'] = "" 
 
-        total_cpfs = len(df.head(sample)) 
+        total_cpfs = len(df.head(sample))  
 
         for index, row in df.head(sample).iterrows():
             cpf = row['CPF']
@@ -176,7 +210,7 @@ def main(sample):
                 df.at[index, 'Saldo'] = "0"
                 logging.warning(f"Definindo saldo como 0 para CPF {cpf} devido a erro no processamento.")
 
-        df.to_excel('planilha_atualizada.xlsx', index=False)
+        df.to_excel('C:\\Users\\admin\\Documents\\Projects\\automation\\outputs\\sexta-carga-results.xlsx', index=False)
         logging.info("Processamento concluído. Planilha atualizada salva.")
 
     except Exception as e:
@@ -185,5 +219,5 @@ def main(sample):
         driver.quit()
 
 if __name__ == "__main__":
-    sample = 11911
+    sample = 6267  
     main(sample)
